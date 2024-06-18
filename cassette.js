@@ -1,4 +1,5 @@
 let events = [];
+let eventsURL = new URL('/events', document.currentScript.src).href;
 
 rrweb.record({
   emit(event) {
@@ -9,7 +10,8 @@ rrweb.record({
 function save() {
   const body = JSON.stringify({ events });
   events = [];
-  fetch('https://relevant-new-vervet.ngrok-free.app/events', {
+
+  fetch(eventsURL, {
     method: 'POST',
     credentials: 'include',
     headers: {
