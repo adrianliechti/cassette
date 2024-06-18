@@ -2,8 +2,9 @@ package server
 
 import (
 	"bytes"
-	_ "embed"
+	"embed"
 	"encoding/json"
+	"io/fs"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -22,6 +23,9 @@ var (
 
 	//go:embed record.umd.min.cjs
 	jsRecord string
+
+	//go:embed public
+	public embed.FS
 )
 
 type Server struct {
@@ -52,23 +56,21 @@ func New(r *repository.Repository) *Server {
 		Repository: r,
 	}
 
-	mux.HandleFunc("GET /", s.handleIndex)
-
-	mux.HandleFunc("GET /cassette.min.cjs", s.handleScript)
 	mux.HandleFunc("POST /events", s.handleEvents)
+	mux.HandleFunc("GET /cassette.min.cjs", s.handleScript)
 
 	mux.HandleFunc("GET /sessions", s.handleSessions)
 	mux.HandleFunc("GET /sessions/{session}", s.handleSession)
 	mux.HandleFunc("GET /sessions/{session}/events", s.handleSessionEvents)
+
+	root, _ := fs.Sub(public, "public")
+	mux.Handle("/", http.FileServerFS(root))
 
 	return s
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler.ServeHTTP(w, r)
-}
-
-func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleScript(w http.ResponseWriter, r *http.Request) {
