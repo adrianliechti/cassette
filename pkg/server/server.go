@@ -1,10 +1,10 @@
 package server
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rs/cors"
@@ -17,11 +17,11 @@ const (
 )
 
 var (
-	//go:embed cassette.min.cjs
-	cassetteRecord string
-
 	//go:embed cassette.js
-	cassetteClient string
+	jsCassette string
+
+	//go:embed record.umd.min.cjs
+	jsRecord string
 )
 
 type Server struct {
@@ -54,14 +54,18 @@ func New(r *repository.Repository) *Server {
 
 	mux.HandleFunc("GET /", s.handleIndex)
 
+	mux.HandleFunc("GET /cassette.min.cjs", s.handleScript)
 	mux.HandleFunc("POST /events", s.handleEvents)
 
 	mux.HandleFunc("GET /sessions", s.handleSessions)
+	mux.HandleFunc("GET /sessions/{session}", s.handleSession)
 	mux.HandleFunc("GET /sessions/{session}/events", s.handleSessionEvents)
 
-	mux.HandleFunc("GET /cassette.min.cjs", s.handleScript)
-
 	return s
+}
+
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.handler.ServeHTTP(w, r)
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -70,17 +74,13 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleScript(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript")
 
-	var result strings.Builder
+	var result bytes.Buffer
 
-	result.WriteString(cassetteRecord)
+	result.WriteString(jsRecord)
 	result.WriteString("\n")
-	result.WriteString(cassetteClient)
+	result.WriteString(jsCassette)
 
-	w.Write([]byte(result.String()))
-}
-
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.handler.ServeHTTP(w, r)
+	w.Write(result.Bytes())
 }
 
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
@@ -133,6 +133,24 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 
 			Created: s.Created,
 		})
+	}
+
+	json.NewEncoder(w).Encode(result)
+}
+
+func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("session")
+
+	session, err := s.Session(id)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	result := Session{
+		ID:      session.ID,
+		Created: session.Created,
 	}
 
 	json.NewEncoder(w).Encode(result)
