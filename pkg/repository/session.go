@@ -13,6 +13,10 @@ type Session struct {
 }
 
 func (s *Session) Events() []Event {
+	if s.events == nil {
+		return []Event{}
+	}
+
 	return s.events
 }
 

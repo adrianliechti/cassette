@@ -85,7 +85,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Events []Event `json:"events"`
+		Events []repository.Event `json:"events"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -100,7 +100,7 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if session.AppendEvents(body.Events); err != nil {
+	if err := session.AppendEvents(body.Events...); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
