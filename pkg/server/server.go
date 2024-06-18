@@ -33,8 +33,12 @@ type Server struct {
 func New(r *repository.Repository) *Server {
 	mux := http.NewServeMux()
 
+	cors.Default()
+
 	cors := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:5174"},
+		AllowOriginFunc: func(origin string) bool {
+			return true
+		},
 		AllowedMethods:   []string{"HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
