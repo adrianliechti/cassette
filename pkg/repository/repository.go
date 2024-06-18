@@ -1,16 +1,31 @@
 package repository
 
-import "time"
+import (
+	"encoding/json"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
+type Event any
+
+type Session struct {
+	ID string
+
+	Created time.Time
+}
 
 type Repository struct {
-	sessions map[string]*Session
-
-	last string
+	root string
 }
 
 func New() (*Repository, error) {
+	root := "sessions"
+
 	r := &Repository{
-		sessions: make(map[string]*Session),
+		root: root,
 	}
 
 	return r, nil
@@ -19,30 +34,105 @@ func New() (*Repository, error) {
 func (r *Repository) Sessions() ([]Session, error) {
 	result := make([]Session, 0)
 
-	for _, s := range r.sessions {
-		result = append(result, *s)
+	return result, filepath.WalkDir(r.root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		info, err := d.Info()
+
+		if err != nil {
+			return nil
+		}
+
+		session := Session{
+			ID: info.Name(),
+
+			Created: info.ModTime(),
+		}
+
+		result = append(result, session)
+
+		return nil
+	})
+}
+
+func (r *Repository) Session(id string) (*Session, error) {
+	path := filepath.Join(r.root, id)
+
+	info, err := os.Stat(path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &Session{
+		ID: id,
+
+		Created: info.ModTime(),
+	}, nil
+}
+
+func (r *Repository) SessionEvents(id string) ([]Event, error) {
+	path := filepath.Join(r.root, id)
+
+	f, err := os.OpenFile(path, os.O_RDONLY, 0)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+
+	data, err := os.ReadFile(path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	parts := strings.Split(string(data), "\n")
+
+	var result []Event
+
+	for _, part := range parts {
+		var events []Event
+
+		if len(part) <= 2 {
+			continue
+		}
+
+		if err := json.Unmarshal([]byte(part), &events); err != nil {
+			return nil, err
+		}
+
+		result = append(result, events...)
 	}
 
 	return result, nil
 }
 
-func (r *Repository) Session(id string) (*Session, error) {
-	if id == "default" {
-		id = r.last
+func (r *Repository) AppendSessionEvents(id string, events ...Event) error {
+	if len(events) == 0 {
+		return nil
 	}
 
-	if session, ok := r.sessions[id]; ok {
-		return session, nil
+	path := filepath.Join(r.root, id)
+
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+
+	if err != nil {
+		return err
 	}
 
-	session := &Session{
-		ID: id,
+	defer f.Close()
 
-		Created: time.Now(),
+	if err := json.NewEncoder(f).Encode(events); err != nil {
+		return err
 	}
 
-	r.last = id
-	r.sessions[id] = session
-
-	return session, nil
+	return nil
 }

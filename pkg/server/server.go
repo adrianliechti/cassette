@@ -32,6 +32,8 @@ type Server struct {
 	handler http.Handler
 
 	*repository.Repository
+
+	last string
 }
 
 func New(r *repository.Repository) *Server {
@@ -95,21 +97,17 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := s.Session(s.getSessionID(r))
+	sessionID := s.getSessionID(r)
+	s.last = sessionID
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := session.AppendEvents(body.Events...); err != nil {
+	if err := s.AppendSessionEvents(sessionID, body.Events...); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:  cookieName,
-		Value: session.ID,
+		Value: sessionID,
 
 		Path: "/",
 
@@ -143,6 +141,10 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("session")
 
+	if id == "default" && s.last != "" {
+		id = s.last
+	}
+
 	session, err := s.Session(id)
 
 	if err != nil {
@@ -161,14 +163,16 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSessionEvents(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("session")
 
-	session, err := s.Session(id)
+	if id == "default" && s.last != "" {
+		id = s.last
+	}
+
+	events, err := s.SessionEvents(id)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-
-	events := session.Events()
 
 	json.NewEncoder(w).Encode(events)
 }
