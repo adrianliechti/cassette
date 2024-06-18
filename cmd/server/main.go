@@ -17,7 +17,7 @@ func main() {
 
 	s := server.New(r)
 
-	if err := http.ListenAndServe(":8080", s); err != nil {
+	if err := http.ListenAndServe(":3000", s); err != nil {
 		panic(err)
 	}
 }

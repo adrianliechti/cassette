@@ -20,7 +20,7 @@ RUN apk add --no-cache tini ca-certificates
 WORKDIR /
 COPY --from=build /src/server server
 
-EXPOSE 8080
+EXPOSE 3000
 
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["/server"]
