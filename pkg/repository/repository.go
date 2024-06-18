@@ -2,10 +2,10 @@ package repository
 
 import (
 	"encoding/json"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -88,24 +88,18 @@ func (r *Repository) SessionEvents(id string) ([]Event, error) {
 
 	defer f.Close()
 
-	data, err := os.ReadFile(path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	parts := strings.Split(string(data), "\n")
-
 	var result []Event
 
-	for _, part := range parts {
+	d := json.NewDecoder(f)
+
+	for {
 		var events []Event
 
-		if len(part) <= 2 {
-			continue
-		}
+		if err := d.Decode(&events); err != nil {
+			if err == io.EOF {
+				break
+			}
 
-		if err := json.Unmarshal([]byte(part), &events); err != nil {
 			return nil, err
 		}
 
