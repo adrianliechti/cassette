@@ -4,18 +4,18 @@ import (
 	_ "embed"
 	"net/http"
 
-	"cassette/pkg/repository"
+	"cassette/config"
 	"cassette/pkg/server"
 )
 
 func main() {
-	r, err := repository.New()
+	cfg, err := config.FromEnvironment()
 
 	if err != nil {
 		panic(err)
 	}
 
-	s := server.New(r)
+	s := server.New(cfg)
 
 	if err := http.ListenAndServe(":3000", s); err != nil {
 		panic(err)

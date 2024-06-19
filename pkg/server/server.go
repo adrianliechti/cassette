@@ -2,14 +2,15 @@ package server
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/rs/cors"
 
+	"cassette/config"
 	"cassette/pkg/repository"
-	_ "embed"
+	"cassette/pkg/storage"
 )
 
 const (
@@ -25,14 +26,14 @@ var (
 )
 
 type Server struct {
+	*config.Config
+
 	handler http.Handler
 
-	*repository.Repository
-
-	last string
+	lastSession string
 }
 
-func New(r *repository.Repository) *Server {
+func New(config *config.Config) *Server {
 	mux := http.NewServeMux()
 
 	cors.Default()
@@ -49,9 +50,9 @@ func New(r *repository.Repository) *Server {
 	handler := cors.Handler(mux)
 
 	s := &Server{
-		handler: handler,
+		Config: config,
 
-		Repository: r,
+		handler: handler,
 	}
 
 	mux.HandleFunc("POST /events", s.handleEvents)
@@ -61,8 +62,7 @@ func New(r *repository.Repository) *Server {
 	mux.HandleFunc("GET /sessions/{session}", s.handleSession)
 	mux.HandleFunc("GET /sessions/{session}/events", s.handleSessionEvents)
 
-	fs := http.FileServer(http.Dir("./public"))
-	http.Handle("/", fs)
+	mux.Handle("/", http.FileServer(http.Dir("./public")))
 
 	return s
 }
@@ -85,7 +85,7 @@ func (s *Server) handleScript(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Events []repository.Event `json:"events"`
+		Events []storage.Event `json:"events"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -93,17 +93,32 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID := s.getSessionID(r)
-	s.last = sessionID
+	var err error
+	var session *repository.Session
 
-	if err := s.AppendSessionEvents(sessionID, body.Events...); err != nil {
+	if id := s.getSessionID(r); id != "" {
+		session, err = s.Repository.Session(id)
+	}
+
+	if session == nil {
+		session, err = s.Repository.CreateSession()
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	s.lastSession = session.ID
+
+	if err := s.Storage.AppendEvents(session.ID, body.Events...); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:  cookieName,
-		Value: sessionID,
+		Value: session.ID,
 
 		Path: "/",
 
@@ -113,7 +128,7 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
-	sessions, err := s.Sessions()
+	sessions, err := s.Repository.Sessions()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -121,49 +136,41 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	result := make([]Session, 0)
-
-	for _, s := range sessions {
-		result = append(result, Session{
-			ID: s.ID,
-
-			Created: s.Created,
-		})
-	}
-
-	json.NewEncoder(w).Encode(result)
+	json.NewEncoder(w).Encode(sessions)
 }
 
 func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("session")
 
-	if id == "default" && s.last != "" {
-		id = s.last
+	if id == "default" && s.lastSession != "" {
+		id = s.lastSession
 	}
 
-	session, err := s.Session(id)
+	session, err := s.Repository.Session(id)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	result := Session{
-		ID:      session.ID,
-		Created: session.Created,
-	}
-
-	json.NewEncoder(w).Encode(result)
+	json.NewEncoder(w).Encode(session)
 }
 
 func (s *Server) handleSessionEvents(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("session")
 
-	if id == "default" && s.last != "" {
-		id = s.last
+	if id == "default" && s.lastSession != "" {
+		id = s.lastSession
 	}
 
-	events, err := s.SessionEvents(id)
+	session, err := s.Repository.Session(id)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	events, err := s.Storage.Events(session.ID)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -180,5 +187,5 @@ func (s *Server) getSessionID(r *http.Request) string {
 		return cookie.Value
 	}
 
-	return uuid.New().String()
+	return ""
 }

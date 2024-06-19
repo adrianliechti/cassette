@@ -22,11 +22,13 @@ FROM golang:1-alpine AS build
 
 WORKDIR /src
 
+RUN apk add --no-cache build-base
+
 COPY go.* ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -o server cmd/server/main.go
+RUN CGO_ENABLED=1 go build -o server cmd/server/main.go
 
 
 ## Deploy
