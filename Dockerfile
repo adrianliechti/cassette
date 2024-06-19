@@ -39,6 +39,7 @@ RUN apk add --no-cache tini ca-certificates
 WORKDIR /
 COPY --from=build /src/server server
 COPY --from=ui /src/ui/dist ./public
+COPY ./demo ./demo
 
 EXPOSE 3000
 
