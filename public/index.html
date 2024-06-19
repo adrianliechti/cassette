@@ -1,0 +1,30 @@
+<html>
+
+<head>
+    <title>Cassette</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/index.js"></script>
+</head>
+
+<body>
+    <div id="player"></div>
+</body>
+
+<script>
+    fetch('/sessions/default/events')
+        .then(response => response.json())
+        .then(events => {
+            new rrwebPlayer({
+                target: document.getElementById('player'),
+                autoplay: false,
+                props: {
+                    events,
+                },
+            });
+        })
+        .catch(error => {
+            console.error('error fetching events:', error);
+        });
+</script>
+
+</html>
