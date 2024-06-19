@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import type { eventWithTime } from "@rrweb/types";
 
-export const API_URL = "http://localhost:3000";
-
 export default function useEvents({ id }: { id?: string }) {
   const [sessions, setSessions] = useState<eventWithTime[]>([]);
   const [loading, setLoading] = useState(true);
@@ -12,7 +10,7 @@ export default function useEvents({ id }: { id?: string }) {
       return;
     }
 
-    fetch(`${API_URL}/sessions/${id}/events`)
+    fetch(`/sessions/${id}/events`)
       .then((res) => res.json())
       .then((data) => {
         setSessions(data);
