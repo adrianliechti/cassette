@@ -62,6 +62,7 @@ func New(config *config.Config) *Server {
 	mux.HandleFunc("GET /sessions/{session}", s.handleSession)
 	mux.HandleFunc("GET /sessions/{session}/events", s.handleSessionEvents)
 
+	mux.Handle("/demo/", http.StripPrefix("/demo", http.FileServer(http.Dir("./demo"))))
 	mux.Handle("/", http.FileServer(http.Dir("./public")))
 
 	return s
