@@ -116,6 +116,11 @@ func (r *Repository) AppendSessionEvents(id string, events ...Event) error {
 
 	path := filepath.Join(r.root, id)
 
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 
 	if err != nil {

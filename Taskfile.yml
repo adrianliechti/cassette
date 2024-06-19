@@ -1,11 +1,11 @@
 # https://taskfile.dev
 
-version: '3'
+version: "3"
 
 tasks:
   push:
     vars:
-      DOCKER_IMAGE: adrianliechti/cassette
+      DOCKER_IMAGE: chrutzer/cassette
 
     cmds:
       - docker buildx build --push --platform linux/arm64,linux/amd64 --tag {{.DOCKER_IMAGE}} .

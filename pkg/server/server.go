@@ -2,15 +2,14 @@ package server
 
 import (
 	"bytes"
-	"embed"
 	"encoding/json"
-	"io/fs"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/rs/cors"
 
 	"cassette/pkg/repository"
+	_ "embed"
 )
 
 const (
@@ -23,9 +22,6 @@ var (
 
 	//go:embed record.umd.min.cjs
 	jsRecord string
-
-	//go:embed public
-	public embed.FS
 )
 
 type Server struct {
@@ -65,8 +61,8 @@ func New(r *repository.Repository) *Server {
 	mux.HandleFunc("GET /sessions/{session}", s.handleSession)
 	mux.HandleFunc("GET /sessions/{session}/events", s.handleSessionEvents)
 
-	root, _ := fs.Sub(public, "public")
-	mux.Handle("/", http.FileServerFS(root))
+	fs := http.FileServer(http.Dir("./public"))
+	http.Handle("/", fs)
 
 	return s
 }
