@@ -59,7 +59,10 @@ func New(config *config.Config) *Server {
 	mux.HandleFunc("GET /cassette.min.cjs", s.handleScript)
 
 	mux.HandleFunc("GET /sessions", s.handleSessions)
+
 	mux.HandleFunc("GET /sessions/{session}", s.handleSession)
+	mux.HandleFunc("DELETE /sessions/{session}", s.handleSessionDelete)
+
 	mux.HandleFunc("GET /sessions/{session}/events", s.handleSessionEvents)
 
 	mux.Handle("/demo/", http.StripPrefix("/demo", http.FileServer(http.Dir("./demo"))))
@@ -155,6 +158,22 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(session)
+}
+
+func (s *Server) handleSessionDelete(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("session")
+
+	if err := s.Storage.DeleteDelete(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := s.Repository.DeleteSession(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) handleSessionEvents(w http.ResponseWriter, r *http.Request) {

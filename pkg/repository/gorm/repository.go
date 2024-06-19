@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 
@@ -71,7 +70,11 @@ func (r *Repository) CreateSession() (*repository.Session, error) {
 }
 
 func (r *Repository) DeleteSession(id string) error {
-	return errors.ErrUnsupported
+	if tx := r.db.Delete(&Session{}, "id = ?", id); tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
 }
 
 func convertSessions(sessions []Session) []repository.Session {
