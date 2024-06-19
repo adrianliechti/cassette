@@ -33,6 +33,8 @@ type Server struct {
 	*config.Config
 
 	handler http.Handler
+
+	lastSession string
 }
 
 func New(config *config.Config) *Server {
@@ -112,6 +114,8 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.lastSession = session.ID
+
 	if err := s.Storage.AppendEvents(session.ID, body.Events...); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -143,6 +147,10 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("session")
 
+	if id == "default" && s.lastSession != "" {
+		id = s.lastSession
+	}
+
 	session, err := s.Repository.Session(id)
 
 	if err != nil {
@@ -155,6 +163,10 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleSessionEvents(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("session")
+
+	if id == "default" && s.lastSession != "" {
+		id = s.lastSession
+	}
 
 	session, err := s.Repository.Session(id)
 
