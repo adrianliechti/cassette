@@ -1,2 +1,6 @@
-/sessions
+sessions
 .DS_Store
+.idea/
+.vscode
+.DS_Store
+**/__debug_bin*
