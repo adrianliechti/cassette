@@ -13,9 +13,23 @@ import (
 type Config struct {
 	Storage    storage.Storage
 	Repository repository.Repository
+
+	Username string
+	Password string
 }
 
 func FromEnvironment() (*Config, error) {
+	username := os.Getenv("USERNAME")
+	password := os.Getenv("PASSWORD")
+
+	if username == "" {
+		username = "admin"
+	}
+
+	if password == "" {
+		password = "admin"
+	}
+
 	path := os.Getenv("DATA_PATH")
 
 	if path == "" {
@@ -37,5 +51,8 @@ func FromEnvironment() (*Config, error) {
 	return &Config{
 		Storage:    s,
 		Repository: r,
+
+		Username: username,
+		Password: password,
 	}, nil
 }

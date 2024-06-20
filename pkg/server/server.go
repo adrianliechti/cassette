@@ -47,13 +47,11 @@ func New(config *config.Config) *Server {
 		AllowCredentials: true,
 	})
 
-	handler := cors.Handler(mux)
-
 	s := &Server{
 		Config: config,
-
-		handler: handler,
 	}
+
+	s.handler = cors.Handler(s.authHandler(mux))
 
 	mux.HandleFunc("POST /events", s.handleEvents)
 	mux.HandleFunc("GET /cassette.min.cjs", s.handleScript)
@@ -65,7 +63,6 @@ func New(config *config.Config) *Server {
 
 	mux.HandleFunc("GET /sessions/{session}/events", s.handleSessionEvents)
 
-	mux.Handle("/demo/", http.StripPrefix("/demo", http.FileServer(http.Dir("./demo"))))
 	mux.Handle("/", http.FileServer(http.Dir("./public")))
 
 	return s
@@ -73,6 +70,31 @@ func New(config *config.Config) *Server {
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler.ServeHTTP(w, r)
+}
+
+func (s *Server) authHandler(next http.Handler) http.Handler {
+	if s.Username == "" || s.Password == "" {
+		return next
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/events" || r.URL.Path == "/cassette.min.cjs" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		username, password, ok := r.BasicAuth()
+
+		if ok {
+			if username == s.Username && password == s.Password {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		w.Header().Set("WWW-Authenticate", `Basic realm="Cassette - Admin UI", charset="UTF-8"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	})
 }
 
 func (s *Server) handleScript(w http.ResponseWriter, r *http.Request) {
