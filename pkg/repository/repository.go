@@ -10,9 +10,9 @@ type Session struct {
 	Created time.Time `json:"created"`
 	Updated time.Time `json:"updated"`
 
-	Origin string
+	Origin string `json:"origin"`
 
-	UserAgent string
+	UserAgent string `json:"userAgent"`
 }
 
 type Repository interface {
