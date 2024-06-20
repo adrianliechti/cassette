@@ -59,8 +59,18 @@ func (r *Repository) Session(id string) (*repository.Session, error) {
 	return convertSession(session), nil
 }
 
-func (r *Repository) CreateSession() (*repository.Session, error) {
-	session := Session{}
+func (r *Repository) CreateSession(info *repository.SessionInfo) (*repository.Session, error) {
+	if info == nil {
+		info = new(repository.SessionInfo)
+	}
+
+	session := Session{
+		Origin: info.Origin,
+
+		User:      info.User,
+		UserName:  info.UserName,
+		UserAgent: info.UserAgent,
+	}
 
 	if tx := r.db.Create(&session); tx.Error != nil {
 		return nil, tx.Error
@@ -94,5 +104,11 @@ func convertSession(session Session) *repository.Session {
 
 		Created: session.CreatedAt,
 		Updated: session.UpdatedAt,
+
+		Origin: session.Origin,
+
+		User:      session.User,
+		UserName:  session.UserName,
+		UserAgent: session.UserAgent,
 	}
 }

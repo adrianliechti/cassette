@@ -28,9 +28,8 @@ var (
 type Server struct {
 	*config.Config
 
-	handler http.Handler
-
-	lastSession string
+	handler    http.Handler
+	filesystem http.FileSystem
 }
 
 func New(config *config.Config) *Server {
@@ -48,7 +47,8 @@ func New(config *config.Config) *Server {
 	s := &Server{
 		Config: config,
 
-		handler: cors.Handler(mux),
+		handler:    cors.Handler(mux),
+		filesystem: http.Dir("./public"),
 	}
 
 	mux.HandleFunc("POST /events", s.handleEvents)
@@ -59,7 +59,7 @@ func New(config *config.Config) *Server {
 	mux.HandleFunc("GET /sessions/{session}/events", s.handleAuth(s.handleSessionEvents))
 	mux.HandleFunc("DELETE /sessions/{session}", s.handleAuth(s.handleSessionDelete))
 
-	mux.HandleFunc("/", s.handleAuth(http.FileServer(http.Dir("./public")).ServeHTTP))
+	mux.HandleFunc("/", s.handleAuth(s.handleUI))
 
 	return s
 }
@@ -87,6 +87,11 @@ func (s *Server) handleAuth(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func (s *Server) handleUI(w http.ResponseWriter, r *http.Request) {
+	handler := http.FileServer(s.filesystem)
+	handler.ServeHTTP(w, r)
+}
+
 func (s *Server) handleScript(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript")
 
@@ -112,12 +117,18 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var session *repository.Session
 
-	if id := s.getSessionID(r); id != "" {
+	if id := getSessionID(r); id != "" {
 		session, err = s.Repository.Session(id)
 	}
 
+	info := &repository.SessionInfo{
+		Origin: s.getOrigin(r),
+
+		UserAgent: r.UserAgent(),
+	}
+
 	if session == nil {
-		session, err = s.Repository.CreateSession()
+		session, err = s.Repository.CreateSession(info)
 	}
 
 	if err != nil {
@@ -125,22 +136,12 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.lastSession = session.ID
-
 	if err := s.Storage.AppendEvents(session.ID, body.Events...); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:  cookieName,
-		Value: session.ID,
-
-		Path: "/",
-
-		Secure:   r.URL.Scheme == "https",
-		HttpOnly: true,
-	})
+	setSessionID(w, r, session.ID)
 }
 
 func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
@@ -157,10 +158,6 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("session")
-
-	if id == "default" && s.lastSession != "" {
-		id = s.lastSession
-	}
 
 	session, err := s.Repository.Session(id)
 
@@ -191,10 +188,6 @@ func (s *Server) handleSessionDelete(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSessionEvents(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("session")
 
-	if id == "default" && s.lastSession != "" {
-		id = s.lastSession
-	}
-
 	session, err := s.Repository.Session(id)
 
 	if err != nil {
@@ -212,7 +205,19 @@ func (s *Server) handleSessionEvents(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(events)
 }
 
-func (s *Server) getSessionID(r *http.Request) string {
+func (s *Server) getOrigin(r *http.Request) string {
+	if val := r.Header.Get("Origin"); val != "" {
+		return val
+	}
+
+	if val := r.Header.Get("Referer"); val != "" {
+		return val
+	}
+
+	return ""
+}
+
+func getSessionID(r *http.Request) string {
 	cookie, _ := r.Cookie(cookieName)
 
 	if cookie != nil && cookie.Value != "" {
@@ -220,4 +225,16 @@ func (s *Server) getSessionID(r *http.Request) string {
 	}
 
 	return ""
+}
+
+func setSessionID(w http.ResponseWriter, r *http.Request, id string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:  cookieName,
+		Value: id,
+
+		Path: "/",
+
+		Secure:   r.URL.Scheme == "https",
+		HttpOnly: true,
+	})
 }

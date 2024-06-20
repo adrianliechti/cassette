@@ -12,6 +12,12 @@ type Session struct {
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
+	Origin string
+
+	User      string
+	UserName  string
+	UserAgent string
 }
 
 func (s *Session) BeforeCreate(tx *gorm.DB) (err error) {
