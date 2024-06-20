@@ -36,8 +36,6 @@ type Server struct {
 func New(config *config.Config) *Server {
 	mux := http.NewServeMux()
 
-	cors.Default()
-
 	cors := cors.New(cors.Options{
 		AllowOriginFunc: func(origin string) bool {
 			return true
@@ -49,21 +47,19 @@ func New(config *config.Config) *Server {
 
 	s := &Server{
 		Config: config,
-	}
 
-	s.handler = cors.Handler(s.authHandler(mux))
+		handler: cors.Handler(mux),
+	}
 
 	mux.HandleFunc("POST /events", s.handleEvents)
 	mux.HandleFunc("GET /cassette.min.cjs", s.handleScript)
 
-	mux.HandleFunc("GET /sessions", s.handleSessions)
+	mux.HandleFunc("GET /sessions", s.handleAuth(s.handleSessions))
+	mux.HandleFunc("GET /sessions/{session}", s.handleAuth(s.handleSession))
+	mux.HandleFunc("GET /sessions/{session}/events", s.handleAuth(s.handleSessionEvents))
+	mux.HandleFunc("DELETE /sessions/{session}", s.handleAuth(s.handleSessionDelete))
 
-	mux.HandleFunc("GET /sessions/{session}", s.handleSession)
-	mux.HandleFunc("DELETE /sessions/{session}", s.handleSessionDelete)
-
-	mux.HandleFunc("GET /sessions/{session}/events", s.handleSessionEvents)
-
-	mux.Handle("/", http.FileServer(http.Dir("./public")))
+	mux.HandleFunc("/", s.handleAuth(http.FileServer(http.Dir("./public")).ServeHTTP))
 
 	return s
 }
@@ -72,29 +68,23 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler.ServeHTTP(w, r)
 }
 
-func (s *Server) authHandler(next http.Handler) http.Handler {
-	if s.Username == "" || s.Password == "" {
-		return next
-	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/events" || r.URL.Path == "/cassette.min.cjs" {
-			next.ServeHTTP(w, r)
+func (s *Server) handleAuth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if s.Username == "" || s.Password == "" {
+			next(w, r)
 			return
 		}
 
-		username, password, ok := r.BasicAuth()
-
-		if ok {
+		if username, password, ok := r.BasicAuth(); ok {
 			if username == s.Username && password == s.Password {
-				next.ServeHTTP(w, r)
+				next(w, r)
 				return
 			}
 		}
 
 		w.Header().Set("WWW-Authenticate", `Basic realm="Cassette - Admin UI", charset="UTF-8"`)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	})
+	}
 }
 
 func (s *Server) handleScript(w http.ResponseWriter, r *http.Request) {
