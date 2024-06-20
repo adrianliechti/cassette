@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"net"
 	"net/http"
 
 	"github.com/rs/cors"
@@ -121,13 +122,14 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 		session, err = s.Repository.Session(id)
 	}
 
-	info := &repository.SessionInfo{
-		Origin: s.getOrigin(r),
-
-		UserAgent: r.UserAgent(),
-	}
-
 	if session == nil {
+		info := &repository.SessionInfo{
+			Origin:  getOrigin(r),
+			Address: getAddress(r),
+
+			UserAgent: r.UserAgent(),
+		}
+
 		session, err = s.Repository.CreateSession(info)
 	}
 
@@ -205,7 +207,7 @@ func (s *Server) handleSessionEvents(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(events)
 }
 
-func (s *Server) getOrigin(r *http.Request) string {
+func getOrigin(r *http.Request) string {
 	if val := r.Header.Get("Origin"); val != "" {
 		return val
 	}
@@ -215,6 +217,11 @@ func (s *Server) getOrigin(r *http.Request) string {
 	}
 
 	return ""
+}
+
+func getAddress(r *http.Request) string {
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	return host
 }
 
 func getSessionID(r *http.Request) string {

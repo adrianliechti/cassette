@@ -10,7 +10,8 @@ type Session struct {
 	Created time.Time `json:"created"`
 	Updated time.Time `json:"updated"`
 
-	Origin string `json:"origin"`
+	Origin  string `json:"origin"`
+	Address string `json:"address"`
 
 	UserAgent string `json:"userAgent"`
 }
@@ -24,7 +25,8 @@ type Repository interface {
 }
 
 type SessionInfo struct {
-	Origin string
+	Origin  string
+	Address string
 
 	UserAgent string
 }

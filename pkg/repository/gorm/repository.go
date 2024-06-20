@@ -102,7 +102,9 @@ func convertSession(session Session) *repository.Session {
 		Created: session.CreatedAt,
 		Updated: session.UpdatedAt,
 
-		Origin:    session.Origin,
+		Origin:  session.Origin,
+		Address: session.Address,
+
 		UserAgent: session.UserAgent,
 	}
 }
