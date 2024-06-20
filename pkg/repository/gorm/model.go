@@ -13,10 +13,7 @@ type Session struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 
-	Origin string
-
-	User      string
-	UserName  string
+	Origin    string
 	UserAgent string
 }
 

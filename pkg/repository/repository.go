@@ -12,8 +12,6 @@ type Session struct {
 
 	Origin string
 
-	User      string
-	UserName  string
 	UserAgent string
 }
 
@@ -28,7 +26,5 @@ type Repository interface {
 type SessionInfo struct {
 	Origin string
 
-	User      string
-	UserName  string
 	UserAgent string
 }

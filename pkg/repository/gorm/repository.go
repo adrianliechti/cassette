@@ -65,10 +65,7 @@ func (r *Repository) CreateSession(info *repository.SessionInfo) (*repository.Se
 	}
 
 	session := Session{
-		Origin: info.Origin,
-
-		User:      info.User,
-		UserName:  info.UserName,
+		Origin:    info.Origin,
 		UserAgent: info.UserAgent,
 	}
 
@@ -105,10 +102,7 @@ func convertSession(session Session) *repository.Session {
 		Created: session.CreatedAt,
 		Updated: session.UpdatedAt,
 
-		Origin: session.Origin,
-
-		User:      session.User,
-		UserName:  session.UserName,
+		Origin:    session.Origin,
 		UserAgent: session.UserAgent,
 	}
 }
