@@ -89,10 +89,6 @@ func (s *Server) handleAuth(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func (s *Server) handleUI(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/help" || r.URL.Path == "/help/" {
-		r.URL.Path = "/index.html"
-	}
-
 	handler := http.FileServer(s.filesystem)
 	handler.ServeHTTP(w, r)
 }
