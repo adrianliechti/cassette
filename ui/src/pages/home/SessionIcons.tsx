@@ -2,12 +2,21 @@ import { SiApple, SiFirefoxbrowser, SiGooglechrome, SiMicrosoftedge, SiSafari, S
 import UAParser from 'ua-parser-js';
 import { Session } from '../../hooks/useSessions';
 
-export function SessionIcons({ session }: { session: Session }) {
+interface SessionIconsProps {
+  session: Session;
+  large?: boolean;
+}
+
+export function SessionIcons({ session, large = false }: SessionIconsProps) {
   let agent = new UAParser(session.userAgent);
 
   const icons: JSX.Element[] = [];
 
-  const className = 'h-3 w-3 text-gray-400';
+  let className = 'text-gray-400 h-3 w-3';
+
+  if (large) {
+    className = 'text-gray-500 h-4 w-4';
+  }
 
   switch (agent.getBrowser().name) {
     case 'Chrome':

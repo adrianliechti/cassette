@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 export interface Session {
   id: string;
@@ -8,17 +8,10 @@ export interface Session {
 }
 
 export default function useSessions() {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
+  const query = useQuery<Session[]>({
+    queryKey: ['sessions'],
+    queryFn: () => fetch(`/sessions`).then((res) => res.json()),
+  });
 
-  useEffect(() => {
-    fetch('/sessions')
-      .then((res) => res.json())
-      .then((data) => {
-        setSessions(data);
-        setLoading(false);
-      });
-  }, []);
-
-  return { data: sessions, loading };
+  return query;
 }

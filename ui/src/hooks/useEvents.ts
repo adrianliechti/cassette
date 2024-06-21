@@ -1,22 +1,12 @@
-import type { eventWithTime } from '@rrweb/types';
-import { useEffect, useState } from 'react';
+import { eventWithTime } from '@rrweb/types';
+import { useQuery } from '@tanstack/react-query';
 
 export default function useEvents({ id }: { id?: string | null }) {
-  const [sessions, setSessions] = useState<eventWithTime[]>([]);
-  const [loading, setLoading] = useState(true);
+  const query = useQuery<eventWithTime[]>({
+    queryKey: ['events', id],
+    queryFn: () => fetch(`/sessions/${id}/events`).then((res) => res.json()),
+    enabled: !!id,
+  });
 
-  useEffect(() => {
-    if (!id) {
-      return;
-    }
-
-    fetch(`/sessions/${id}/events`)
-      .then((res) => res.json())
-      .then((data) => {
-        setSessions(data);
-        setLoading(false);
-      });
-  }, [id]);
-
-  return { data: sessions, loading };
+  return query;
 }
