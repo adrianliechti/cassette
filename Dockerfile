@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ## UI
-FROM node:19-alpine as ui
+FROM node:19-alpine AS ui
 
 RUN npm i -g pnpm
 
