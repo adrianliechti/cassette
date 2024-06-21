@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.rr-progress__handler,
+button.svelte-19ke1iv.active,
+.switch.svelte-9brlez input[type='checkbox'].svelte-9brlez:checked + label.svelte-9brlez::before {
+  background: #059669 !important;
+}
+
+.rr-progress__step,
+.switch.svelte-9brlez label.svelte-9brlez.svelte-9brlez::before {
+  background: #05966930 !important;
+}

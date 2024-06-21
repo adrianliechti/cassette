@@ -9,7 +9,9 @@ import 'rrweb-player/dist/style.css';
 import Loader from '../../components/Loader';
 import useDeleteSession from '../../hooks/useDeleteSession';
 import useEvents from '../../hooks/useEvents';
+import useSessions from '../../hooks/useSessions';
 import { formatDate, formatTime, getFormatedTimeDiff } from '../../utils';
+import { SessionIcons } from './SessionIcons';
 
 export default function Player() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -20,8 +22,10 @@ export default function Player() {
   const currentSessionId = searchParams.get('id');
   const [metadata, setMetadata] = useState<playerMetaData>();
 
-  const { data: events, loading } = useEvents({ id: currentSessionId });
-  const [deleteSession] = useDeleteSession();
+  const { data: sessions } = useSessions();
+
+  const { data: events, isPending } = useEvents({ id: currentSessionId });
+  const { mutate } = useDeleteSession();
 
   useEffect(() => {
     if (events && events.length > 2 && playerContainerRef.current) {
@@ -55,7 +59,7 @@ export default function Player() {
     );
   }
 
-  if (loading) {
+  if (isPending) {
     return (
       <PlayerWrapper>
         <div className="flex flex-col items-center justify-center gap-2 pt-32">
@@ -66,37 +70,48 @@ export default function Player() {
     );
   }
 
+  const session = sessions?.find((s) => s.id === currentSessionId);
+
   return (
     <PlayerWrapper>
-      <div className="flex items-center justify-between border-b border-gray-200 p-4">
-        <div className="flex flex-col gap-1">
-          <div className="text-sm font-bold">{currentSessionId}</div>
-          <div className="flex gap-4 text-gray-500">
-            <div className="flex items-center gap-1 text-xs">
-              <Calendar className="h-4 w-4" />
-              {`${formatDate(metadata?.startTime)} - ${formatTime(metadata?.endTime)}`}
-            </div>
-            <div className="flex items-center gap-1 text-xs">
-              <TimerIcon className="h-4 w-4" />
-              {getFormatedTimeDiff(metadata?.startTime, metadata?.endTime)}
+      <div className="flex h-16 items-center justify-between border-b border-gray-200 p-4">
+        <div className="flex items-center gap-8 divide-x">
+          <div className="flex flex-col gap-1">
+            <div className="text-sm font-bold">{currentSessionId}</div>
+            <div className="flex gap-4 text-gray-500">
+              <div className="flex items-center gap-1 text-xs">
+                <Calendar className="h-4 w-4" />
+                {`${formatDate(metadata?.startTime)} - ${formatTime(metadata?.endTime)}`}
+              </div>
+              <div className="flex items-center gap-1 text-xs">
+                <TimerIcon className="h-4 w-4" />
+                {getFormatedTimeDiff(metadata?.startTime, metadata?.endTime)}
+              </div>
             </div>
           </div>
+          {session && (
+            <div className="pl-6">
+              <SessionIcons session={session} large />
+            </div>
+          )}
         </div>
 
         <div
           onClick={() => {
             if (confirm(`Delete Session «${currentSessionId}»?`)) {
-              deleteSession(currentSessionId).then(() => {
-                if (searchParams.has('id')) {
-                  searchParams.delete('id');
-                  setSearchParams(searchParams);
-                }
+              mutate(currentSessionId, {
+                onSuccess: () => {
+                  if (searchParams.has('id')) {
+                    searchParams.delete('id');
+                    setSearchParams(searchParams);
+                  }
+                },
               });
             }
           }}
-          className="cursor-pointer p-2 text-gray-500 hover:text-rose-500"
+          className="cursor-pointer p-2 text-gray-600 hover:text-rose-500"
         >
-          <Trash2Icon className="h-5 w-5" />
+          <Trash2Icon className="h-4 w-4" />
         </div>
       </div>
       <div id="player-container" ref={playerContainerRef} className="[&_.rr-player]:shadow-none" />

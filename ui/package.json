@@ -12,6 +12,7 @@
   "dependencies": {
     "@icons-pack/react-simple-icons": "^9.5.0",
     "@rrweb/types": "^2.0.0-alpha.15",
+    "@tanstack/react-query": "^5.45.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.395.0",
     "react": "^18.2.0",
