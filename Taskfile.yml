@@ -3,9 +3,9 @@
 version: "3"
 
 tasks:
-  push:
+  publish:
     vars:
-      DOCKER_IMAGE: adrianliechti/cassette
+      DOCKER_IMAGE: ghcr.io/adrianliechti/cassette
 
     cmds:
       - docker buildx build --push --platform linux/arm64,linux/amd64 --tag {{.DOCKER_IMAGE}} .

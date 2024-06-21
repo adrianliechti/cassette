@@ -5,7 +5,7 @@ Cassette is a simple to host Web Session Recorder and Player.
 ### Run
 
 ```bash
-docker run -it --rm -p 3000:3000 adrianliechti/cassette
+docker run -it --rm -p 3000:3000 ghcr.io/adrianliechti/cassette
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
