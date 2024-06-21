@@ -92,7 +92,7 @@ func (s *Server) handleAuth(next http.HandlerFunc) http.HandlerFunc {
 
 func (s *Server) handleUI(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/help" || r.URL.Path == "/help/" {
-		http.ServeFileFS(w, r, s.filesystem, "help.html")
+		http.ServeFileFS(w, r, s.filesystem, "index.html")
 		return
 	}
 
