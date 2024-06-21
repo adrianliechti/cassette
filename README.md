@@ -1,17 +1,18 @@
 # Cassette
 
-Cassette is a simple to host Web Session Recorder and Player.
+Cassette is a simple to host web session recorder and player.
 
-### Run
+<img src="ui/src/assets/cassette.svg" height="200"/>
+
+### Quick Start
+
+Run using Docker:
 
 ```bash
 docker run -it --rm -p 3000:3000 ghcr.io/adrianliechti/cassette
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
-
-
-### Integration 
+Page Integration
 
 ```html
 <html>
@@ -20,3 +21,11 @@ Open [http://localhost:3000](http://localhost:3000)
   </head>
 <html>
 ```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+
+### Acknowledgements
+
+ - [Christian Rutzer](https://github.com/chrutzer)
+ - [rrweb](https://github.com/rrweb-io/rrweb)
