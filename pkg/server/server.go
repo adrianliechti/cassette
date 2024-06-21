@@ -4,8 +4,10 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"io/fs"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/rs/cors"
 
@@ -30,7 +32,7 @@ type Server struct {
 	*config.Config
 
 	handler    http.Handler
-	filesystem http.FileSystem
+	filesystem fs.FS
 }
 
 func New(config *config.Config) *Server {
@@ -49,7 +51,7 @@ func New(config *config.Config) *Server {
 		Config: config,
 
 		handler:    cors.Handler(mux),
-		filesystem: http.Dir("./public"),
+		filesystem: os.DirFS("./public"),
 	}
 
 	mux.HandleFunc("POST /events", s.handleEvents)
@@ -89,7 +91,12 @@ func (s *Server) handleAuth(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func (s *Server) handleUI(w http.ResponseWriter, r *http.Request) {
-	handler := http.FileServer(s.filesystem)
+	if r.URL.Path == "/help" || r.URL.Path == "/help/" {
+		http.ServeFileFS(w, r, s.filesystem, "help.html")
+		return
+	}
+
+	handler := http.FileServerFS(s.filesystem)
 	handler.ServeHTTP(w, r)
 }
 
