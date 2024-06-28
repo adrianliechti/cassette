@@ -35,7 +35,7 @@ export default function List({ sessions }: ListProps) {
     <div className="w-80 flex-shrink-0 flex-grow-0 rounded-md border border-gray-200">
       <div className="flex h-16 items-center border-b border-gray-200 p-4 font-bold">Sessions</div>
       <nav className="h-full max-h-[calc(100dvh-12rem)] flex-grow overflow-y-auto">
-        {Object.keys(preparedList).map((date) => (
+        {Object.keys(preparedList).reverse().map((date) => (
           <div key={date} className="relative">
             <div className="sticky top-0 z-10 flex items-center border-b border-gray-200 bg-gray-100 px-4 py-1 text-sm font-medium">
               <h3>{date}</h3>
